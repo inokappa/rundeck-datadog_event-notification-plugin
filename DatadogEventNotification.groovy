@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.JsonNode
 class DEFAULTS {
     static String DATADOG_EVENT_URL = "https://app.datadoghq.com/api/v1/events?api_key="
     static String SUBJECT_LINE='Rundeck JOB: ${job.status} [${job.project}] \"${job.name}\" run by ${job.user} (#${job.execid})'
+    static String API_KEY='Your Datadog API Key'
 }
 
 /**
@@ -50,6 +51,9 @@ def alertInfo(binding) {
       break
     case "failed" :
       alert_info = "error"
+      break
+    default:
+      alert_info = "info"
       break
   }
    return alert_info
@@ -101,8 +105,8 @@ rundeckPlugin(NotificationPlugin){
     title="DataDog_Event"
     description="Create a Trigger event."
     configuration{
-        subject title:"Subject", description:"Incident subject line. Can contain \${job.status}, \${job.project}, \${job.name}, \${job.group}, \${job.user}, \${job.execid}", defaultValue:DEFAULTS.SUBJECT_LINE,required:true
-        api_key title:"API Key", description:"Datadog API key", scope:"Project"
+        subject title:"Subject", description:"Incident subject line. Can contain \${job.status}, \${job.project}, \${job.name}, \${job.group}, \${job.user}, \${job.execid}", defaultValue:DEFAULTS.SUBJECT_LINE, required:true
+        api_key title:"API Key", description:"Datadog API key", defaultValue:DEFAULTS.API_KEY, required:true
     }
     onstart { Map execution, Map configuration ->
         triggerEvent(execution, configuration)
