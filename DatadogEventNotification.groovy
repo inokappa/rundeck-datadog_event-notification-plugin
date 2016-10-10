@@ -33,7 +33,8 @@ def titleString(text,binding) {
     '${job.name}': binding.execution.job.name,
     '${job.group}': binding.execution.job.group,
     '${job.user}': binding.execution.user,
-    '${job.execid}': binding.execution.id.toString()
+    '${job.execid}': binding.execution.id.toString(),
+    '${job.slugged_name}': binding.execution.job.name.replaceAll("[\\s]", "_").toLowerCase()
   ]
   text.replaceAll(/(\$\{\S+?\})/){
     tokens[it[0]]
@@ -107,6 +108,8 @@ rundeckPlugin(NotificationPlugin){
     configuration{
         subject title:"Subject", description:"Incident subject line. Can contain \${job.status}, \${job.project}, \${job.name}, \${job.group}, \${job.user}, \${job.execid}", defaultValue:DEFAULTS.SUBJECT_LINE, required:true
         api_key title:"API Key", description:"Datadog API key", defaultValue:DEFAULTS.API_KEY, required:true
+        tags title:"Tags", description:"Datadog tags for this event", defaultValue:"rundeck, job", required:false
+        aggregation_key title:"Aggregation key", description: "Aggregation key for this event.", defaultValue: "rundeck:\${job.project}:\${job.group}:\${job.slugged_name}", required: false
     }
     onstart { Map execution, Map configuration ->
         triggerEvent(execution, configuration)
