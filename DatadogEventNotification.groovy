@@ -33,7 +33,8 @@ def titleString(text,binding) {
     '${job.name}': binding.execution.job.name,
     '${job.group}': binding.execution.job.group,
     '${job.user}': binding.execution.user,
-    '${job.execid}': binding.execution.id.toString()
+    '${job.execid}': binding.execution.id.toString(),
+    '${job.slugged_name}': binding.execution.job.name.replaceAll("[\\s]", "_").toLowerCase()
   ]
   text.replaceAll(/(\$\{\S+?\})/){
     tokens[it[0]]
@@ -68,12 +69,18 @@ def triggerEvent(Map execution, Map configuration) {
   //System.err.println("DEBUG: excutionData="+execution)
   def expandedTitle = titleString(configuration.subject, [execution:execution])
   def expandedAlertinfo = alertInfo([execution:execution])
+  def tags = configuration.tags ? titleString(configuration.tags, [execution:execution]) : 'rundeck:' + execution.job.name
   def job_data = [
     title: expandedTitle,
     text: "Please see: " + execution.href,
-    tags: "rundeck:" + execution.job.name,
+    tags: tags,
     alert_type: expandedAlertinfo
   ]
+
+  if (configuration.aggregation_key) {
+    def aggregationKey = titleString(configuration.aggregation_key, [execution:execution])
+    job_data.put("aggregation_key", aggregationKey)
+  }
 
   // Send the request.
   def url = new URL(DEFAULTS.DATADOG_EVENT_URL+configuration.api_key)
@@ -107,6 +114,8 @@ rundeckPlugin(NotificationPlugin){
     configuration{
         subject title:"Subject", description:"Incident subject line. Can contain \${job.status}, \${job.project}, \${job.name}, \${job.group}, \${job.user}, \${job.execid}", defaultValue:DEFAULTS.SUBJECT_LINE, required:true
         api_key title:"API Key", description:"Datadog API key", defaultValue:DEFAULTS.API_KEY, required:true
+        tags title:"Tags", description:"Datadog tags for this event", defaultValue:"rundeck:\${job.project}:\${job.status}, rundeck:\${job.group}", required:false
+        aggregation_key title:"Aggregation key", description: "Aggregation key for this event.", defaultValue: "rundeck:\${job.project}:\${job.group}:\${job.slugged_name}", required: false
     }
     onstart { Map execution, Map configuration ->
         triggerEvent(execution, configuration)
